@@ -6648,6 +6648,7 @@ static void genInitObjectHeader(TR::Node             *node,
                                 TR::Register         *objectReg,
                                 TR::Register         *tempReg,
                                 bool                 isZeroInitialized,
+                                bool                 isDynamicAllocation,
                                 TR::CodeGenerator    *cg)
    {
    TR::Compilation *comp = cg->comp();
@@ -6657,12 +6658,7 @@ static void genInitObjectHeader(TR::Node             *node,
                            (!TR::Compiler->om.generateCompressedObjectHeaders() ||
                             (cg->comp()->compileRelocatableCode() && cg->comp()->getOption(TR_UseSymbolValidationManager)));
 
-   // This code was moved to this point so that the romClass can be used by the AOT
-   // portion without calling the method again.
-   //
-   J9ROMClass *romClass = 0;
-   TR_ASSERT(clazz, "Cannot have a null OpaqueClassBlock\n");
-   romClass = TR::Compiler->cls.romClassOf(clazz);
+   TR_ASSERT((isDynamicAllocation || clazz), "Cannot have a null clazz while not doing dynamic array allocation\n");
 
    // --------------------------------------------------------------------------------
    //
@@ -6674,8 +6670,16 @@ static void genInitObjectHeader(TR::Node             *node,
 
    TR::Register * clzReg = classReg;
 
+   // For dynamic array allocation, load the array class from the component class and store into clzReg
+   if (isDynamicAllocation)
+      {
+      TR_ASSERT((node->getOpCodeValue() == TR::anewarray), "Dynamic allocation currently only supports reference arrays");
+      TR_ASSERT(classReg, "must have a classReg for dynamic allocation");
+      clzReg = tempReg;
+      generateRegMemInstruction(LRegMem(), node, clzReg, generateX86MemoryReference(classReg, offsetof(J9Class, arrayClass), cg), cg);
+      }
    // TODO: should be able to use a TR_ClassPointer relocation without this stuff (along with class validation)
-   if (cg->needClassAndMethodPointerRelocations() && !comp->getOption(TR_UseSymbolValidationManager))
+   else if (cg->needClassAndMethodPointerRelocations() && !comp->getOption(TR_UseSymbolValidationManager))
       {
       TR::Register *vmThreadReg = cg->getVMThreadRegister();
       if (node->getOpCodeValue() == TR::newarray)
@@ -6689,13 +6693,6 @@ static void genInitObjectHeader(TR::Node             *node,
          generateMemRegInstruction(opSMemReg, node,
              generateX86MemoryReference(objectReg, TR::Compiler->om.offsetOfObjectVftField(), cg),
              tempReg, cg);
-         clzReg = tempReg;
-         }
-      else if (node->getOpCodeValue() == TR::anewarray)
-         {
-         TR_ASSERT(classReg, "must have a classReg for TR::anewarray in AOT mode");
-         generateRegMemInstruction(LRegMem(), node, tempReg,
-             generateX86MemoryReference(classReg, offsetof(J9Class, arrayClass), cg), cg);
          clzReg = tempReg;
          }
       else
@@ -6751,6 +6748,7 @@ static void genInitObjectHeader(TR::Node             *node,
 
 #ifndef J9VM_INTERP_FLAGS_IN_CLASS_SLOT
    // Enable macro once GC-Helper is fixed
+   J9ROMClass *romClass = TR::Compiler->cls.romClassOf(clazz);
    if (romClass)
       {
       orFlags |= romClass->instanceShape;
@@ -6772,23 +6770,39 @@ static void genInitObjectHeader(TR::Node             *node,
    //
    // --------------------------------------------------------------------------------
    //
-   J9Class *j9class = TR::Compiler->cls.convertClassOffsetToClassPtr(clazz);
-   bool initReservable = J9CLASS_EXTENDED_FLAGS(j9class) & J9ClassReservableLockWordInit;
-   if (!isZeroInitialized || initReservable)
+   // For dynamic array allocation, in case (very unlikely) the object array has a lock word, we just initialized it to 0 conservatively.
+   // In this case, if the original array is reserved, initializating the cloned object's lock word to 0 will force the 
+   // locking to go to the slow locking path.
+   if (isDynamicAllocation)
       {
-      bool initLw = (node->getOpCodeValue() != TR::New) || initReservable;
-      int lwOffset = fej9->getByteOffsetToLockword(clazz);
-      if (lwOffset == -1)
-         initLw = false;
-
-      if (initLw)
+      TR::LabelSymbol *doneLabel = generateLabelSymbol(cg);
+      generateRegMemInstruction(LRegMem(), node, tempReg, generateX86MemoryReference(clzReg, offsetof(J9ArrayClass, lockOffset), cg), cg);
+      generateRegImmInstruction(CMPRegImm4(), node, tempReg, (int32_t)-1, cg);
+      generateLabelInstruction (JE4, node, doneLabel, cg);
+      generateMemImmInstruction(SMemImm4(TR::Compiler->target.is64Bit() && !fej9->generateCompressedLockWord()),
+            node, generateX86MemoryReference(objectReg, tempReg, 0, cg), 0, cg);
+      generateLabelInstruction(LABEL, node, doneLabel, cg);
+      }
+   else
+      {
+      J9Class *j9class = TR::Compiler->cls.convertClassOffsetToClassPtr(clazz);
+      bool initReservable = J9CLASS_EXTENDED_FLAGS(j9class) & J9ClassReservableLockWordInit;
+      if (!isZeroInitialized || initReservable)
          {
-         int32_t initialLwValue = 0;
-         if (initReservable)
-            initialLwValue = OBJECT_HEADER_LOCK_RESERVED;
+         bool initLw = (node->getOpCodeValue() != TR::New) || initReservable;
+         int lwOffset = fej9->getByteOffsetToLockword(clazz);
+         if (lwOffset == -1)
+            initLw = false;
 
-         TR_X86OpCodes op = (TR::Compiler->target.is64Bit() && fej9->generateCompressedLockWord()) ? S4MemImm4 : SMemImm4();
-         generateMemImmInstruction(op, node, generateX86MemoryReference(objectReg, lwOffset, cg), initialLwValue, cg);
+         if (initLw)
+            {
+            int32_t initialLwValue = 0;
+            if (initReservable)
+               initialLwValue = OBJECT_HEADER_LOCK_RESERVED;
+
+            generateMemImmInstruction(SMemImm4(TR::Compiler->target.is64Bit() && !fej9->generateCompressedLockWord()),
+                  node, generateX86MemoryReference(objectReg, lwOffset, cg), initialLwValue, cg);
+            }
          }
       }
    }
@@ -6806,13 +6820,14 @@ static void genInitArrayHeader(
       int32_t arrayletDataOffset,
       TR::Register *tempReg,
       bool isZeroInitialized,
+      bool isDynamicAllocation,
       TR::CodeGenerator *cg)
    {
    TR_J9VMBase *fej9 = (TR_J9VMBase *)(cg->fe());
 
    // Initialize the object header
    //
-   genInitObjectHeader(node, clazz, classReg, objectReg, tempReg, isZeroInitialized, cg);
+   genInitObjectHeader(node, clazz, classReg, objectReg, tempReg, isZeroInitialized, isDynamicAllocation, cg);
 
    int32_t arraySizeOffset = fej9->getOffsetOfContiguousArraySizeField();
 
@@ -7383,7 +7398,6 @@ J9::X86::TreeEvaluator::VMnewEvaluator(
    TR_OpaqueClassBlock *clazz      = NULL;
    TR::Register        *classReg   = NULL;
    bool                 isArrayNew = false;
-
    int32_t allocationSize = 0;
    int32_t objectSize     = 0;
    int32_t elementSize    = 0;
@@ -7437,7 +7451,11 @@ J9::X86::TreeEvaluator::VMnewEvaluator(
    objectSize = comp->canAllocateInline(node, clazz);
    if (objectSize < 0)
       return NULL;
-
+   // Currently dynamic allocation is only supported on reference array.
+   // We are performing dynamic array allocation if both object size and
+   // class block cannot be statically determined.
+   bool dynamicArrayAllocation = (node->getOpCodeValue() == TR::anewarray)
+         && (objectSize == 0) && (clazz == NULL);
    allocationSize = objectSize;
 
    static long count = 0;
@@ -7482,6 +7500,9 @@ J9::X86::TreeEvaluator::VMnewEvaluator(
             elementSize = (int32_t)TR::Compiler->om.sizeofReferenceAddress();
 
          classReg = node->getSecondChild()->getRegister();
+         // For dynamic array allocation, need to evaluate second child
+         if (!classReg && dynamicArrayAllocation)
+            classReg = cg->evaluate(node->getSecondChild());	 
          }
 
       isArrayNew = true;
@@ -7773,9 +7794,8 @@ J9::X86::TreeEvaluator::VMnewEvaluator(
    // --------------------------------------------------------------------------------
    // Initialize the header
    // --------------------------------------------------------------------------------
-   if (fej9->inlinedAllocationsMustBeVerified()
-       && !comp->getOption(TR_UseSymbolValidationManager)
-       && node->getOpCodeValue() == TR::anewarray)
+   // If dynamic array allocation, must pass in classReg to initialize the array header
+   if ((fej9->inlinedAllocationsMustBeVerified() && !comp->getOption(TR_UseSymbolValidationManager) && node->getOpCodeValue() == TR::anewarray) || dynamicArrayAllocation)
       {
       genInitArrayHeader(
             node,
@@ -7787,6 +7807,7 @@ J9::X86::TreeEvaluator::VMnewEvaluator(
             dataOffset,
             tempReg,
             monitorSlotIsInitialized,
+            true,
             cg);
       }
    else if (isArrayNew)
@@ -7801,11 +7822,12 @@ J9::X86::TreeEvaluator::VMnewEvaluator(
             dataOffset,
             tempReg,
             monitorSlotIsInitialized,
+            false,
             cg);
       }
    else
       {
-      genInitObjectHeader(node, clazz, classReg, targetReg, tempReg, monitorSlotIsInitialized, cg);
+      genInitObjectHeader(node, clazz, classReg, targetReg, tempReg, monitorSlotIsInitialized, false, cg);
       }
 
    if (fej9->inlinedAllocationsMustBeVerified() && (node->getOpCodeValue() == TR::New ||
