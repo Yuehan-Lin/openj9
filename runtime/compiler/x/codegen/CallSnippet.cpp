@@ -924,9 +924,9 @@ uint8_t *TR::X86CallSnippet::emitSnippetBody()
 
       // CALL updateInterpreterDispatchGlueSite
       //
-      helperSymRef = cg()->symRefTab()->findOrCreateRuntimeHelper(TR_X86updateInterpreterDispatchGlueSite, false, false, false);
+      helperSymRef = cg()->symRefTab()->findOrCreateRuntimeHelper(TR_X86interpreterStaticAndSpecialGlue, false, false, false);
 
-      *cursor++ = 0xe8;    // CALL
+      *cursor++ = 0xe9;    // JMP
       disp32 = cg()->branchDisplacementToHelperOrTrampoline(cursor+4, helperSymRef);
       *(int32_t *)cursor = disp32;
 
