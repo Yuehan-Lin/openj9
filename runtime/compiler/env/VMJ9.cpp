@@ -1692,7 +1692,7 @@ TR_J9VMBase::getFragmentParentOffset()
    {
 
 #if defined(J9VM_GC_REALTIME)
-    return offsetof(J9VMGCRememberedSetFragment, fragmentParent);
+    return offsetof(MM_GCRememberedSetFragment, fragmentParent);
 #endif
    return 0;
    }
@@ -1701,7 +1701,7 @@ UDATA
 TR_J9VMBase::getRememberedSetGlobalFragmentOffset()
    {
 #if defined(J9VM_GC_REALTIME)
-      return offsetof(J9VMGCRememberedSet, globalFragmentIndex);
+      return offsetof(MM_GCRememberedSet, globalFragmentIndex);
 #endif
    return 0;
    }
@@ -1710,7 +1710,7 @@ UDATA
 TR_J9VMBase::getLocalFragmentOffset()
    {
 #if defined(J9VM_GC_REALTIME)
-       return offsetof(J9VMGCRememberedSetFragment, localFragmentIndex);
+       return offsetof(MM_GCRememberedSetFragment, localFragmentIndex);
 #endif
     return 0;
    }
