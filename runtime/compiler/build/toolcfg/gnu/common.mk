@@ -73,9 +73,6 @@ ifeq ($(C_COMPILER),clang)
     endif
 endif
 
-# This is the script that's used to generate TRBuildName.cpp
-GENERATE_VERSION_SCRIPT?=$(JIT_SCRIPT_DIR)/generateVersion.pl
-
 # This is the script to preprocess ARM assembly files
 ARMASM_SCRIPT?=$(JIT_SCRIPT_DIR)/armasm2gas.sed
 
@@ -312,7 +309,7 @@ ifeq ($(HOST_ARCH),x)
     NASM_DEFINES=\
         TR_HOST_X86 \
         TR_TARGET_X86
-    
+
     ifeq ($(OS),osx)
         NASM_DEFINES+=\
             OSX
@@ -328,11 +325,11 @@ ifeq ($(HOST_ARCH),x)
 
     ifeq ($(HOST_BITS),32)
         NASM_OBJ_FORMAT=-felf32
-    
+
         NASM_DEFINES+=\
             TR_HOST_32BIT \
             TR_TARGET_32BIT
-    
+
         NASM_INCLUDES+=\
             $(J9SRC)/compiler/x/i386/runtime
     else
@@ -341,7 +338,7 @@ ifeq ($(HOST_ARCH),x)
         else
             NASM_OBJ_FORMAT=-felf64
         endif
-    
+
         NASM_DEFINES+=\
             TR_HOST_64BIT \
             TR_TARGET_64BIT
