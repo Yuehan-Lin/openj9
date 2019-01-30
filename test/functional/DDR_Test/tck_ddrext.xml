@@ -31,6 +31,10 @@
 	<property name="TEST_RESROOT" value="${TEST_RESROOT}" />
 	<property name="REPORTDIR" value="${REPORTDIR}" />
 	<property name="JDK_VERSION" value="${JDK_VERSION}" />
+	<property name="EXTRADUMPOPT" value="${EXTRADUMPOPT}" />
+	<property name="TCK_CR_VM_ARG" value="${TCK_CR_VM_ARG}"/>
+	<property name="TESTNUM" value="${TESTNUM}"/>
+	
 	<if>
 		<equals arg1="${JDK_VERSION}" arg2="8"/>
 		<then>
@@ -102,6 +106,7 @@
 	<target name="TCK.generate.dump">
 		<echo>Generate dump file</echo>
 		<exec executable="${JAVA_COMMAND}" failonerror="true">
+			<arg line="${EXTRADUMPOPT}" />
 			<arg line="${DUMP_OPTION}" />
 		</exec>
 		<if>
@@ -121,5 +126,180 @@
 
 	<target name="clean" depends="TCK.run.tests.ddrext" description="clean">
 		<delete file="${system.dump}" />
+	</target>
+
+	<target name="TCK_ddrext_deadlock" depends="clean">
+			<echo>This target will run deadlock detection DDR Extension tests </echo>
+			<antcall target="TCK.ddrext.deadlock">
+				<propertyset refid="propertyset.tck.ddrext" />
+		</antcall>
+	</target>
+
+	<target name="ddrext.setup" description="Create the required directories">
+		<!-- do not invoke this target with antcall as the properties defined here need to be visible to all subsequent targets -->
+		<echo>Setting up TCK</echo>
+		<mkdir dir="${tck.output.dir}"/>
+		<mkdir dir="${tck.output.dir}_${tck.type}"/>
+		<echo>Recording Java version</echo>
+		<java fork="true" jvm="${sdk.executable}${sdk.executable.ext}" classname="com.ibm.dtfj.tck.harness.TCKLauncher" 
+			failonerror="true" outputproperty="jvm.version" newenvironment="true">
+			<jvmarg value="-version" />
+		</java>
+		<condition property="java.is64bit">
+			<matches pattern=" jvm\S+64| p\S+64|\-64 " string="${jvm.version}" multiline="true"/>
+		</condition>
+		
+		<!--real-time specific setup-->
+		<java fork="true" jvm="${sdk.executable}${sdk.executable.ext}" classname="com.ibm.dtfj.tck.harness.TCKLauncher" 
+			failonerror="false" outputproperty="jvm.version.realtime" newenvironment="true">
+			<jvmarg value="-Xrealtime" />
+			<jvmarg value="-version" />
+		</java>
+		<condition property="env.isrealtime">
+			<matches pattern=" real-time" string="${jvm.version.realtime}" multiline="true"/>
+		</condition>
+
+		<!-- z/OS specific setup -->
+		<condition property="tck.zos.core.suffix" value=".X001" else="">
+			<and>
+				<os family="z/os" />
+				<isset property="java.is64bit" />
+			</and>
+		</condition>
+	</target>
+
+	<target name="ddrext.setup.dump.dynamic" description="Create dump options for dynamic ddr ext test">
+		<!-- create dump options, different for z/OS -->
+		<condition property="system.dump" value="${user.name}.${tck.core.file.mvs}" else="${tck.core.file.ddrext}">
+			<os family="z/os" />
+		</condition>
+			
+		<condition property="isWindows">
+                <os family="windows" />
+        </condition>
+		<condition property="isZOS">
+	            <os family="z/os" />
+	    </condition>
+	    	
+		<var name="temp.tck.config.dump.opt" value = ""/>
+			
+		<if>	
+			<isset property="isZOS"/>
+				<then>
+					<var name="temp.tck.config.dump.opt" value="-Xdump:system:defaults:request=exclusive+compact+prepwalk,label=${user.name}.${tck.core.file.mvs}"/>
+				</then>
+			<elseif>
+				<isset property="isWindows"/>
+				<then>							
+					<tempfile property="path.file"/>
+					<echo>Fixing slashes in the property: -Xdump:system:defaults:file=${system.dump},request=exclusive+compact+prepwalk </echo>
+					<echo message="-Xdump:system:defaults:file=${system.dump},request=exclusive+compact+prepwalk" file="${path.file}"/>
+					<replace file="${path.file}" token="/" value="\\" />
+					<loadfile srcfile="${path.file}" property="newProperty"/>
+					<delete file="${path.file}"/>
+					<var name="temp.tck.config.dump.opt" value="${newProperty}"/>
+					<echo>temp.tck.config.dump.opt = ${temp.tck.config.dump.opt}</echo>
+					<var name="temp.tck.config.dump.opt" value="${newProperty}"/>
+				</then>
+			</elseif>
+			<else>
+				<var name="temp.tck.config.dump.opt" value="-Xdump:system:defaults:file=${system.dump},request=exclusive+compact+prepwalk"/>
+			</else>
+		</if>
+		
+		<property name="tck.config.dump.opt.1" value="${temp.tck.config.dump.opt}"/> 
+		
+		<property name="tck.config.dump.opts" value="${tck.config.dump.opt.1} ${tck.config.dump.opt.2} ${tck.config.dump.opt.3} ${tck.config.dump.opt.4} ${tck.core.xmx} ${tck.config.dump.opt.extra}"/>
+	</target>
+		
+	<target name="TCK.ddrext.deadlock" depends="ddrext.setup,ddrext.setup.dump.dynamic,TCK.info">
+		<!-- Check whether tck.config.dump.opt.extra is set or not. -->
+		<if>
+			<equals arg1="${tck.config.dump.opt.extra}" arg2="" />
+				<then>
+					<echo>Property "tck.config.dump.opt.extra" is not set.</echo>			
+					<echo>This property is used to generate core file when specific exception is thrown</echo>			
+				</then>
+			<else>
+				<!-- Clean the dump file if it exists -->
+				<if>
+					<equals arg1="${os.family.zos}" arg2="true" />
+					<then>			
+						<antcall target="clean.zos" />					
+					</then>
+				</if>
+				
+				<echo>Creating output directory = ${tck.core.dir}</echo>	
+				<mkdir dir="${tck.core.dir}"/>
+				
+				<!-- Make sure the LIBPATH is set, otherwise AIX fails -->
+				<property environment="env"/>
+				
+				<!-- Following is to generate the deadlock core file -->
+				<echo></echo>
+				<echo>Running j9vm.test.corehelper.DeadlockCoreGenerator</echo>
+				<echo>jvm = ${sdk.executable}</echo>
+				<echo>classname = "j9vm.test.ddrext.AutoRun"</echo>
+				<echo>Java VM Args:</echo>
+				<echo>	jvmarg[0] = ${tck.config.dump.opt.1}</echo>
+				<echo>	jvmarg[1] = ${tck.config.dump.opt.2}</echo>
+				<echo> 	jvmarg[2] = ${tck.config.dump.opt.3}</echo>
+				<echo> 	jvmarg[3] = ${tck.config.dump.opt.4}</echo>
+				<echo> 	jvmarg[4] = ${tck.config.dump.opt.extra}</echo>
+				<echo> 	jvmarg[5] = ${tck.cr.vm.arg}</echo>
+				<echo> 	jvmarg[6] = ${tck.core.xmx}</echo>
+				<echo> 	arg[0] = ${test.num}</echo>
+				<echo>LIBPATH: ${env.LIBPATH}</echo>
+				<echo></echo>
+				<java fork="true" jvm="${sdk.executable}" classname="j9vm.test.corehelper.DeadlockCoreGenerator" dir="${tck.output.dir}_${tck.type}"
+					timeout="1200000" failonerror="true">
+					<jvmarg value="${OPTION_ADDEXPORTS}" />
+					<jvmarg value="${tck.config.dump.opt.1}"/>
+					<jvmarg value="${tck.config.dump.opt.2}"/>
+					<jvmarg value="${tck.config.dump.opt.3}"/>
+					<jvmarg value="${tck.config.dump.opt.4}"/>
+					<jvmarg value="${tck.config.dump.opt.extra}"/>
+					<jvmarg value="${tck.cr.vm.arg}"/>
+					<jvmarg value="${tck.core.xmx}"/>
+					<arg value="${test.num}"/>
+					<classpath refid="tck.class.path" />
+					<env key="LIBPATH" value="${env.LIBPATH}:${test.libpath}"/>
+				</java>
+				
+				<if>
+					<equals arg1="${os.family.zos}" arg2="true" />
+				<then>			
+					<antcall target ="TCK.move.dump.ddrext" />		
+				</then>
+				</if>
+
+				<!-- Following is to run deadlock DDR extension tests -->
+				<echo></echo>
+				<echo>Running the DDR Extension Test : Deadlock Test</echo>
+				<echo>jvm = ${sdk.executable}</echo>
+				<echo>classname = "j9vm.test.ddrext.AutoRun"</echo>
+				<echo>Java VM Args:</echo>
+				<echo>	arg[0] = ${tck.core.file.ddrext}</echo>
+				<echo>	arg[1] = ${test.list}</echo>
+				<echo> 	arg[2] = ${testlibs.dir}/../</echo>
+				<echo></echo>
+				<java fork="true" jvm="${sdk.executable}" classname="j9vm.test.ddrext.AutoRun" dir="${tck.output.dir}_${tck.type}"
+					timeout="1200000" failonerror="true">
+					<jvmarg value="${OPTION_ADDEXPORTS}" />
+					<arg value="${tck.core.file.ddrext}" />
+					<arg value="${test.list}"/>	
+					<arg value="${testlibs.dir}/../" />
+					<classpath refid="tck.class.path" />
+					<classpath refid="library.collector.class.path" />
+				</java>
+
+				<if>
+					<equals arg1="${os.family.zos}" arg2="true" />
+					<then>			
+						<antcall target="clean.zos" />					
+					</then>
+				</if>
+			</else>
+		</if>
 	</target>
 </project>
