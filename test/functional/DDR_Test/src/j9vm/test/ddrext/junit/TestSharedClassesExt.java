@@ -494,7 +494,10 @@ public class TestSharedClassesExt extends DDRExtTesterBase {
 		String findjitpOutput = exec(Constants.SHRC_CMD, new String[] {
 				Constants.SHRC_FINDJITH, Constants.SHRC_FINDJITH_METHODNAME });
 		assertTrue(validate(findjitpOutput,
-				Constants.SHRC_FINDJITH_SUCCESS_KEY,
+				Constants.SHRC_FINDJITH_SUCCESS_KEY0,
+				Constants.SHRC_FINDJITH_FAILURE_KEY, true) ||
+				validate(findjitpOutput,
+				Constants.SHRC_FINDJITH_SUCCESS_KEY1,
 				Constants.SHRC_FINDJITH_FAILURE_KEY, true));
 	}
 
@@ -507,8 +510,12 @@ public class TestSharedClassesExt extends DDRExtTesterBase {
 				new String[] { Constants.SHRC_FINDJITHP,
 						Constants.SHRC_FINDJITHP_METHODPREFIX });
 		assertTrue(validate(findjitppOutput,
-				Constants.SHRC_FINDJITHP_SUCCESS_KEY,
+				Constants.SHRC_FINDJITHP_SUCCESS_KEY0,
+				Constants.SHRC_FINDJITHP_FAILURE_KEY, true) ||
+				validate(findjitppOutput,
+				Constants.SHRC_FINDJITHP_SUCCESS_KEY1,
 				Constants.SHRC_FINDJITHP_FAILURE_KEY, true));
+		
 	}
 
 	public void testShrcJITHForExt() {
@@ -533,7 +540,7 @@ public class TestSharedClassesExt extends DDRExtTesterBase {
 		}
 
 		for (int i = 0; i < lines.length; i++) {
-			if (lines[i].contains("java/lang/Object")) {
+			if (lines[i].contains("java/lang/Object") || lines[i].matches("\\s*r.*\\(\\).*j9rommethod .*")) {
 				if (lines.length > 1) {
 					j9rommethodAddr = lines[i].split("j9rommethod")[1].trim();
 				} else {
@@ -550,7 +557,9 @@ public class TestSharedClassesExt extends DDRExtTesterBase {
 
 		String jitpForOutput = exec(Constants.SHRC_CMD, new String[] {
 				Constants.SHRC_JITHFOR, j9rommethodAddr });
-		assertTrue(validate(jitpForOutput, Constants.SHRC_JITHFOR_SUCCESS_KEY,
+		assertTrue(validate(jitpForOutput, Constants.SHRC_JITHFOR_SUCCESS_KEY0,
+				Constants.SHRC_JITHFOR_FAILURE_KEY, true) ||
+				validate(jitpForOutput, Constants.SHRC_JITHFOR_SUCCESS_KEY1,
 				Constants.SHRC_JITHFOR_FAILURE_KEY, true));
 	}
 	

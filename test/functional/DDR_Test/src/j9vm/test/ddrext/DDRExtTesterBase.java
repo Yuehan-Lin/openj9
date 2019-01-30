@@ -203,10 +203,10 @@ public class DDRExtTesterBase extends TestCase {
 						Pattern.CASE_INSENSITIVE);
 				Matcher matcher = pattern.matcher(output);
 				if (matcher.find() == false) {
-					log.error(currentCommand
+					log.info(currentCommand
 							+ " output does not contain success key : "
 							+ successKey);
-					log.error(currentCommand + " output :"
+					log.info(currentCommand + " output :"
 							+ output);
 					return false;
 				}
@@ -220,9 +220,9 @@ public class DDRExtTesterBase extends TestCase {
 						Pattern.CASE_INSENSITIVE);
 				Matcher matcher = pattern.matcher(output);
 				if (matcher.find()) {
-					log.error(currentCommand
+					log.info(currentCommand
 							+ " output contains failure key : " + failKey);
-					log.error(currentCommand + " output :" + Constants.NL
+					log.info(currentCommand + " output :" + Constants.NL
 							+ output);
 					return false;
 				}
