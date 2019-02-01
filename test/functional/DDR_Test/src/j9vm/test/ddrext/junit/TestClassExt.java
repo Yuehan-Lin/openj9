@@ -49,6 +49,7 @@ public class TestClassExt extends DDRExtTesterBase {
 				new String[] { ramAddr });
 		assertTrue(validate(j9ClassChapeOutput,
 				Constants.J9CLASSSHAPE_SUCCESS_KEY, null, true));
+		System.out.println(j9ClassChapeOutput);
 	}
 
 	public void testJ9VTablesExt() {

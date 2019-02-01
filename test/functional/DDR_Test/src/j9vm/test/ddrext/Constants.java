@@ -281,12 +281,11 @@ public class Constants {
 																	// determine
 	/* The following are constants related to Class related extensions */
 	public static final String ALL_CLASSES_CMD = "allclasses";
-	public static final String ALL_CLASSES_SUCCESS_KEY = "com/ibm/dtfj/tck/tests/javaruntime/TestJavaRuntime_getHeapRoots,com/ibm/dtfj/tck/tests/javaruntime/TestJavaStackFrame_getHeapRoots,"
-			+ "com/ibm/dtfj/tck/tests/javaruntime/TestJavaThreadInspection,com/ibm/dtfj/tests/junit/JavaFieldTest,com/ibm/dtfj/tests/junit/JavaObjectTest";
+	public static final String ALL_CLASSES_SUCCESS_KEY = "j9vm/test/corehelper/HelloWorld,j9vm/test/corehelper/SimpleThread";
 	public static final String ALL_CLASSESS_FAILURE_KEY = "";
 
 	public static final String J9CLASSSHAPE_CMD = "j9classshape";
-	public static final String J9CLASSSHAPE_TEST_CLASS = "com/ibm/dtfj/tests/junit/JavaObjectTest";
+	public static final String J9CLASSSHAPE_TEST_CLASS = "j9vm/test/corehelper/SimpleThread";
 	public static final String J9CLASSSHAPE_SUCCESS_KEY = "_object,"+J9CLASSSHAPE_TEST_CLASS;
 
 	public static final String J9VTABLES_CMD = "j9vtables";
