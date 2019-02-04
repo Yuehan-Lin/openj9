@@ -26,10 +26,7 @@ public class HelloWorld {
 
 	public static void main(String[] args) {
 		System.out.println("Hello World");
-		SimpleThread st = new SimpleThread();
-		
-		st.configureObj();
-		st.configureValidJavaThreads();
+		com.ibm.jvm.Dump.SystemDump();
 	}
 	
 

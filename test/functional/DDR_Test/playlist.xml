@@ -135,6 +135,24 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			<impl>ibm</impl>
 		</impls>
 	</test>
+
+	<test>
+		<testCaseName>testDDRExt_JITExt_ibm</testCaseName>
+		<command>ant -v -DJAVA_COMMAND=$(JAVA_COMMAND) -DTEST_ROOT=${TEST_ROOT} -DJDK_HOME=${JDK_HOME} -DJDK_VERSION=${JDK_VERSION} \
+		-DTEST_RESROOT=$(TEST_RESROOT) -DRESOURCES_DIR=${RESOURCES_DIR} -DREPORTDIR=${REPORTDIR} -DOS=${OS} -DBITS=$(BITS) \
+		-Dtest.list=$(Q)TestJITExt$(Q) -DADDITIONALEXPORTS=$(ADDEXPORTS_JDKASM_UNNAMED) -DEXTRADUMPOPT=$(Q)-Xjit:count=0$(Q) -f $(Q)$(TEST_RESROOT)$(D)tck_ddrext.xml$(Q); \
+		$(TEST_STATUS)</command>
+		<platformRequirements>^os.win</platformRequirements>
+		<levels>
+			<level>extended</level>
+		</levels>
+		<groups>
+			<group>functional</group>
+		</groups>
+		<impls>
+			<impl>ibm</impl>
+		</impls>
+		</test>
 	
 	<test>
 		<testCaseName>testDDRExt_JITExt_openj9</testCaseName>
@@ -153,6 +171,25 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 		</groups>
 		<impls>
 			<impl>openj9</impl>
+		</impls>
+		</test>
+
+		<test>
+		<testCaseName>testDDRExt_JITExt_win</testCaseName>
+		<command>ant -v -DJAVA_COMMAND=$(JAVA_COMMAND) -DTEST_ROOT=${TEST_ROOT} -DJDK_HOME=${JDK_HOME} -DJDK_VERSION=${JDK_VERSION} \
+		-DTEST_RESROOT=$(TEST_RESROOT) -DRESOURCES_DIR=${RESOURCES_DIR} -DREPORTDIR=${REPORTDIR} -DOS=${OS} -DBITS=$(BITS) \
+		-Dtest.list=$(Q)TestJITExt$(Q) -DADDITIONALEXPORTS=$(ADDEXPORTS_JDKASM_UNNAMED) -DEXTRADUMPOPT=$(Q)-Xjit:count=0$(Q) -f $(Q)$(TEST_RESROOT)$(D)tck_ddrext.xml$(Q); \
+		$(TEST_STATUS)</command>
+		<platformRequirements>os.win</platformRequirements>
+		<levels>
+			<level>sanity</level>
+		</levels>
+		<groups>
+			<group>functional</group>
+		</groups>
+		<impls>
+			<impl>openj9</impl>
+			<impl>ibm</impl>
 		</impls>
 		</test>
 	
@@ -175,7 +212,7 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 				<impl>openj9</impl>
 			</impls>
 		</test>
-	
+			
 		<test>
 			<testCaseName>testDDRExt_FindExtThread_openj9</testCaseName>
 			<command>ant -DJAVA_COMMAND=$(JAVA_COMMAND) -DTEST_ROOT=${TEST_ROOT} -DJDK_HOME=${JDK_HOME} -DJDK_VERSION=${JDK_VERSION} \
@@ -195,7 +232,25 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 				<impl>openj9</impl>
 			</impls>
 		</test>
-	
+
+		<test>
+			<testCaseName>testDDRExt_SharedClasses_ibm</testCaseName>
+			<command>ant -DJAVA_COMMAND=$(JAVA_COMMAND) -DTEST_ROOT=${TEST_ROOT} -DJDK_HOME=${JDK_HOME} -DJDK_VERSION=${JDK_VERSION} \
+		-DTEST_RESROOT=$(TEST_RESROOT) -DRESOURCES_DIR=${RESOURCES_DIR} -DREPORTDIR=${REPORTDIR} -DOS=${OS} -DBITS=$(BITS) \
+		-Dtest.list=$(Q)TestSharedClassesExt$(Q) -DADDITIONALEXPORTS=$(ADDEXPORTS_JDKASM_UNNAMED) -f $(Q)$(TEST_RESROOT)$(D)tck_ddrext.xml$(Q); \
+		$(TEST_STATUS)</command>
+			<platformRequirements>^os.win</platformRequirements>
+			<levels>
+				<level>extended</level>
+			</levels>
+			<groups>
+				<group>functional</group>
+			</groups>
+			<impls>
+				<impl>ibm</impl>
+			</impls>
+		</test>
+
 		<test>
 			<testCaseName>testDDRExt_SharedClasses_openj9</testCaseName>
 			<command>ant -DJAVA_COMMAND=$(JAVA_COMMAND) -DTEST_ROOT=${TEST_ROOT} -DJDK_HOME=${JDK_HOME} -DJDK_VERSION=${JDK_VERSION} \
@@ -213,6 +268,25 @@ SPDX-License-Identifier: EPL-2.0 OR Apache-2.0 OR GPL-2.0 WITH Classpath-excepti
 			</groups>
 			<impls>
 				<impl>openj9</impl>
+			</impls>
+		</test>
+
+		<test>
+			<testCaseName>testDDRExt_SharedClasses_win</testCaseName>
+			<command>ant -DJAVA_COMMAND=$(JAVA_COMMAND) -DTEST_ROOT=${TEST_ROOT} -DJDK_HOME=${JDK_HOME} -DJDK_VERSION=${JDK_VERSION} \
+		-DTEST_RESROOT=$(TEST_RESROOT) -DRESOURCES_DIR=${RESOURCES_DIR} -DREPORTDIR=${REPORTDIR} -DOS=${OS} -DBITS=$(BITS) \
+		-Dtest.list=$(Q)TestSharedClassesExt$(Q) -DADDITIONALEXPORTS=$(ADDEXPORTS_JDKASM_UNNAMED) -f $(Q)$(TEST_RESROOT)$(D)tck_ddrext.xml$(Q); \
+		$(TEST_STATUS)</command>
+			<platformRequirements>os.win</platformRequirements>
+			<levels>
+				<level>sanity</level>
+			</levels>
+			<groups>
+				<group>functional</group>
+			</groups>
+			<impls>
+				<impl>openj9</impl>
+				<impl>ibm</impl>
 			</impls>
 		</test>
 

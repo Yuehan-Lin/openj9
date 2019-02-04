@@ -50,7 +50,7 @@
 	<if>
 		<equals arg1="${OS}" arg2="os.zos"/>
 		<then>
-			<property name="DUMP_OPTION" value="-Xdump:system:events=vmstop,label=%uid.${dump.name},request=exclusive+compact+prepwalk -Xscmx16m -Xshareclasses:name=ddrextjunitSCC,addtestjithints -Xjit -Xaot:forceaot,count=5,disableAsyncCompilation -Xmx512M" />
+			<property name="DUMP_OPTION" value="-Xdump:system:defaults:file=${system.dump},request=exclusive+compact+prepwalk -Xscmx16m -Xshareclasses:name=ddrextjunitSCC,addtestjithints -Xjit -Xaot:forceaot,count=5,disableAsyncCompilation -Xmx512M" />
 			<if>
 				<equals arg1="${BITS}" arg2="bits.64"/>
 				<then>
