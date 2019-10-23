@@ -34,4 +34,8 @@ j9jit_files(
 	codegen/J9TreeEvaluator.cpp
 	codegen/J9WatchedInstanceFieldSnippet.cpp
 	codegen/J9WatchedStaticFieldSnippet.cpp
+	${omr_SOURCE_DIR}/fvtest/tril/tril/${YACC_tril_parser_OUTPUTS}
+    ${omr_SOURCE_DIR}/fvtest/tril/tril/${LEX_tril_scanner_OUTPUTS}
+    ${omr_SOURCE_DIR}/fvtest/tril/tril/ast.cpp
+    ${omr_SOURCE_DIR}/fvtest/tril/tril/ilgen.cpp
 )
