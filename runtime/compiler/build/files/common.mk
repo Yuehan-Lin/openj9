@@ -144,6 +144,7 @@ JIT_PRODUCT_BACKEND_SOURCES+=\
     omr/compiler/ilgen/IlGenRequest.cpp \
     omr/compiler/ilgen/IlInjector.cpp \
     omr/compiler/ilgen/OMRTypeDictionary.cpp \
+    omr/compiler/ilgen/OMRIlType.cpp \
     omr/compiler/infra/Assert.cpp \
     omr/compiler/infra/BitVector.cpp \
     omr/compiler/infra/Checklist.cpp \
