@@ -131,13 +131,27 @@ omrchecker_cleandll:
 omrchecker_cleanall:
 	cd $(OMRCHECKER_DIR); make cleanall
 
+CPP_API_FILES=$(addprefix $(FIXED_OBJBASE)/, $(CPP_GENERATED_API_SOURCES)) $(addprefix $(FIXED_SRCBASE)/, $(CPP_GENERATED_API_HEADERS))
+CPP_API_SOURCE_DIR=$(FIXED_OBJBASE)/$(CPP_GENERATED_SOURCE_DIR)
+CPP_API_HEADER_DIR=$(FIXED_SRCBASE)/$(CPP_GENERATED_HEADER_DIR)
+
+$(firstword $(CPP_API_FILES)): $(FIXED_SRCBASE)/$(JITBUILDER_API_DESCRIPTION) $(FIXED_SRCBASE)/$(CPP_API_GENERATOR)
+	@mkdir -p $(CPP_API_SOURCE_DIR)
+	@mkdir -p $(CPP_API_HEADER_DIR)
+	$(PYTHON_PATH) $(FIXED_SRCBASE)/$(CPP_API_GENERATOR) $(FIXED_SRCBASE)/$(JITBUILDER_API_DESCRIPTION) --sourcedir $(CPP_API_SOURCE_DIR) --headerdir $(CPP_API_HEADER_DIR)
+
+$(wordlist 2, $(words $(CPP_API_FILES)), $(CPP_API_FILES)): $(firstword $(CPP_API_FILES))
+
+$(foreach SRCFILE,$(CPP_GENERATED_API_SOURCES),\
+    $(call RULE$(suffix $(SRCFILE)),$(FIXED_OBJBASE)/$(basename $(SRCFILE))$(OBJSUFF),$(FIXED_OBJBASE)/$(SRCFILE)) \
+ )
 
 # The core linter bits.  
 # 
 # linter:: is the default target, and we construct a pre-req for each
 #  .cpp file.
 #
-linter:: omrchecker 
+linter:: omrchecker CPP_API_FILES
 
 
 # The clang invocation magic line.
@@ -162,4 +176,3 @@ JIT_CPP_FILES=$(filter %.cpp,$(JIT_PRODUCT_SOURCE_FILES) $(JIT_PRODUCT_BACKEND_S
 # Construct lint dependencies. 
 $(foreach SRCFILE,$(JIT_CPP_FILES),\
    $(call RULE.linter,$(FIXED_SRCBASE)/$(SRCFILE)))
-
