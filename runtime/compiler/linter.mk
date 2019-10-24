@@ -144,6 +144,17 @@ linter:: omrchecker
 LINTER_EXTRA=-Xclang -load -Xclang $(OMRCHECKER_OBJECT) -Xclang -add-plugin -Xclang omr-checker 
 LINTER_FLAGS=-std=c++0x -w -fsyntax-only -ferror-limit=0 $(LINTER_FLAGS_EXTRA)
 
+CPP_API_FILES=$(addprefix $(FIXED_OBJBASE)/, $(CPP_GENERATED_API_SOURCES)) $(addprefix $(FIXED_SRCBASE)/, $(CPP_GENERATED_API_HEADERS))
+CPP_API_SOURCE_DIR=$(FIXED_OBJBASE)/$(CPP_GENERATED_SOURCE_DIR)
+CPP_API_HEADER_DIR=$(FIXED_SRCBASE)/$(CPP_GENERATED_HEADER_DIR)
+
+$(firstword $(CPP_API_FILES)): $(FIXED_SRCBASE)/$(JITBUILDER_API_DESCRIPTION) $(FIXED_SRCBASE)/$(CPP_API_GENERATOR)
+	@mkdir -p $(CPP_API_SOURCE_DIR)
+	@mkdir -p $(CPP_API_HEADER_DIR)
+	$(PYTHON_PATH) $(FIXED_SRCBASE)/$(CPP_API_GENERATOR) $(FIXED_SRCBASE)/$(JITBUILDER_API_DESCRIPTION) --sourcedir $(CPP_API_SOURCE_DIR) --headerdir $(CPP_API_HEADER_DIR)
+
+$(wordlist 2, $(words $(CPP_API_FILES)), $(CPP_API_FILES)): $(firstword $(CPP_API_FILES))
+
 define DEF_RULE.linter
 .PHONY: $(1).linted 
 
@@ -162,4 +173,3 @@ JIT_CPP_FILES=$(filter %.cpp,$(JIT_PRODUCT_SOURCE_FILES) $(JIT_PRODUCT_BACKEND_S
 # Construct lint dependencies. 
 $(foreach SRCFILE,$(JIT_CPP_FILES),\
    $(call RULE.linter,$(FIXED_SRCBASE)/$(SRCFILE)))
-
