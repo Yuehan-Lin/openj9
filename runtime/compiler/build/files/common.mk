@@ -142,6 +142,9 @@ JIT_PRODUCT_BACKEND_SOURCES+=\
     omr/compiler/il/OMRStaticSymbol.cpp \
     omr/compiler/il/OMRSymbol.cpp \
     omr/compiler/ilgen/IlGenRequest.cpp \
+    omr/compiler/ilgen/IlInjector.cpp \
+    omr/compiler/ilgen/OMRTypeDictionary.cpp \
+    omr/compiler/ilgen/OMRIlType.cpp \
     omr/compiler/infra/Assert.cpp \
     omr/compiler/infra/BitVector.cpp \
     omr/compiler/infra/Checklist.cpp \
@@ -249,7 +252,9 @@ JIT_PRODUCT_BACKEND_SOURCES+=\
     omr/compiler/ras/LimitFile.cpp \
     omr/compiler/ras/LogTracer.cpp \
     omr/compiler/ras/OptionsDebug.cpp \
-    omr/compiler/ras/Tree.cpp
+    omr/compiler/ras/Tree.cpp 
+    # omr/build/jitbuilderclient/cpp/TypeDictionary.cpp \
+    # omr/build/jitbuilderclient/cpp/IlType.cpp    
 
 JIT_PRODUCT_SOURCE_FILES+=\
     compiler/codegen/CodeGenGC.cpp \
